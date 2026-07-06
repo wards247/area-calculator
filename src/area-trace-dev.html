@@ -765,7 +765,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       document.getElementById('area-sub').textContent = '0.0㎡';
       // 清除比例状态
       clearRatio();
+      // 隐藏比例面板后 map-area 宽度变化，必须重算 canvas 尺寸，否则下次描边时右半边点不到
       ratioPanel.style.display = 'none';
+      requestAnimationFrame(() => { requestAnimationFrame(resize); });
       hint.innerHTML = '<p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>';
     }
   });
