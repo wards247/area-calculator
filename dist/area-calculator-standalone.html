@@ -267,6 +267,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
         applyRatio(ratioActive.a, ratioActive.b);
       }
     }
+  }
 
   // ==================== 坐标转换 ====================
   // 显示坐标 → 图片坐标
@@ -403,7 +404,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
     redrawTrace();
     // 显示比例面板，预计算排序格子
+    // 出现后 map-area 高度缩小，需要等浏览器完成布局后强制重算 canvas 尺寸
     ratioPanel.style.display = 'block';
+    requestAnimationFrame(() => { requestAnimationFrame(resize); });
     computeSortedCells();
     updateRatioDisplay();
     hint.innerHTML = '<p>描边完成！点击比例按钮自动填充，也可手动滑动选格</p>';

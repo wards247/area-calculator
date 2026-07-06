@@ -424,7 +424,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
     redrawTrace();
     // 显示比例面板，预计算排序格子
+    // 注意：出现后 map-area 宽度缩小 200px，需要等浏览器完成布局后强制重算 canvas 尺寸
     ratioPanel.style.display = 'flex';
+    requestAnimationFrame(() => { requestAnimationFrame(resize); });
     computeSortedCells();
     updateRatioDisplay();
     hint.innerHTML = '<p>描边完成！右侧比例按钮可自动填充，也可手动滑动选格</p>';
