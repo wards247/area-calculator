@@ -59,6 +59,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   display: inline-block;
 }
 .trace-tip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;z-index:10;pointer-events:none;display:none;text-align:center;line-height:1.5}
+
+/* 比例面板 */
+.ratio-panel{display:none;padding:8px 10px;background:#fafafa;border-top:1px solid #e8e8e8;flex-shrink:0}
+.ratio-panel .title{font-size:13px;font-weight:700;color:#555;text-align:center;margin-bottom:6px}
+.ratio-presets{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.ratio-btn{padding:6px 10px;border:2px solid #bbb;border-radius:8px;background:#fff;font-size:13px;font-weight:700;color:#555;cursor:pointer;outline:none;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.ratio-btn:active{transform:scale(.95)}
+.ratio-btn:hover{border-color:#1565c0;color:#1565c0}
+.ratio-btn.active{border-color:#1565c0;background:#e3f2fd;color:#1565c0}
+.ratio-live{background:#fff;border:2px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center;margin-top:6px}
+.ratio-live .rl-label{font-size:10px;color:#999;display:block}
+.ratio-live .rl-pct{font-size:24px;font-weight:800;color:#1565c0;line-height:1.1}
+.ratio-live .rl-detail{font-size:10px;color:#888;margin-top:3px}
+.ratio-live .rl-detail span{font-weight:700;color:#333}
+.ratio-legend{display:flex;gap:10px;justify-content:center;font-size:10px;color:#666;margin-top:4px}
+.ratio-legend .leg-a::before{content:"";display:inline-block;width:10px;height:10px;background:#2196f3;border-radius:2px;margin-right:3px;vertical-align:middle}
+.ratio-legend .leg-b::before{content:"";display:inline-block;width:10px;height:10px;background:#ff9800;border-radius:2px;margin-right:3px;vertical-align:middle}
+.ratio-custom{display:flex;gap:4px;align-items:center;justify-content:center;margin-top:6px}
+.ratio-custom input{width:48px;padding:4px;border:1px solid #ccc;border-radius:4px;font-size:12px;text-align:center;outline:none}
+.ratio-custom input:focus{border-color:#1565c0}
+.ratio-custom .sep{font-size:11px;color:#999}
+.ratio-custom button{padding:4px 8px;border:1px solid #1565c0;border-radius:4px;background:#1565c0;color:#fff;font-size:11px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -107,6 +129,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="trace-tip" id="trace-tip">点击图片描出 A24 边界<br>双击或点击起点闭合</div>
   </div>
 
+  <div class="ratio-panel" id="ratio-panel">
+    <div class="title">比例填充</div>
+    <div class="ratio-presets" id="ratio-presets">
+      <button class="ratio-btn" data-a="60" data-b="40">60%</button>
+      <button class="ratio-btn" data-a="65" data-b="35">65%</button>
+      <button class="ratio-btn" data-a="70" data-b="30">70%</button>
+    </div>
+    <div class="ratio-custom">
+      <input type="number" id="ratio-a-input" value="60" min="1" max="99" step="1">
+      <span class="sep">/</span>
+      <input type="number" id="ratio-b-input" value="40" min="1" max="99" step="1">
+      <button id="ratio-custom-btn">应用</button>
+    </div>
+    <div class="ratio-live" id="ratio-live">
+      <span class="rl-label">当前占比</span>
+      <span class="rl-pct" id="rl-pct">--%</span>
+      <div class="rl-detail">
+        A区: <span id="rl-a-cells">0</span>格 &nbsp; B区: <span id="rl-b-cells">0</span>格
+      </div>
+      <div class="rl-detail">
+        A区面: <span id="rl-a-area">0.000亩</span> &nbsp; B区面: <span id="rl-b-area">0.000亩</span>
+      </div>
+    </div>
+    <div class="ratio-legend">
+      <span class="leg-a">A区</span>
+      <span class="leg-b">B区</span>
+    </div>
+  </div>
+
   <div class="hint" id="hint">
     <p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>
   </div>
@@ -130,6 +181,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   const hint           = document.getElementById('hint');
   const totalAreaInput = document.getElementById('total-area-input');
 
+  // 比例面板元素
+  const ratioPanel     = document.getElementById('ratio-panel');
+  const ratioPresets   = document.getElementById('ratio-presets');
+  const ratioAInput    = document.getElementById('ratio-a-input');
+  const ratioBInput    = document.getElementById('ratio-b-input');
+  const ratioCustomBtn = document.getElementById('ratio-custom-btn');
+
   // ==================== 状态 ====================
   let imgW = 0, imgH = 0;          // 图片原始尺寸
   let dispW = 0, dispH = 0;        // 显示尺寸
@@ -141,6 +199,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   let polygon = null;               // 闭合后的多边形 [{x, y}]
   let gridOn = false;               // 网格是否显示
   let selectedCells = new Set();    // 选中的格子 set
+
+  // 比例模式
+  let ratioActive = null;           // 当前激活的比例 {a: 60, b: 40}，null=关闭
+  let ratioSplit = 0;               // A区格数（从左上角数起的格子数）
+  let sortedCellKeys = [];          // 按行优先排序的格子key列表
 
   // 面积配置（可编辑）
   let totalAreaMu = 1.12;           // 总面积（亩），跟随输入框变化
@@ -196,8 +259,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     gridCanvas.style.height = dispH + 'px';
 
     redrawTrace();
-    if(polygon) drawGrid();
-  }
+    if(polygon){
+      drawGridSelected();
+      // 比例模式下重新计算格子排序和分界
+      if(ratioActive){
+        computeSortedCells();
+        applyRatio(ratioActive.a, ratioActive.b);
+      }
+    }
 
   // ==================== 坐标转换 ====================
   // 显示坐标 → 图片坐标
@@ -333,13 +402,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     traceTip.style.display = 'none';
 
     redrawTrace();
-    hint.innerHTML = '<p>描边完成！可修改顶部「总面积」数值，然后滑动选择格子</p>';
+    // 显示比例面板，预计算排序格子
+    ratioPanel.style.display = 'block';
+    computeSortedCells();
+    updateRatioDisplay();
+    hint.innerHTML = '<p>描边完成！点击比例按钮自动填充，也可手动滑动选格</p>';
 
     // 自动显示网格
     setTimeout(()=>{
       gridOn = true;
       gridCanvas.style.display = 'block';
       gridCanvas.style.pointerEvents = 'auto';
+      btnGrid.style.display = 'inline-block';
       btnGrid.textContent = '🔲 隐藏网格';
       drawGridSelected();
       hint.innerHTML = '<p>在格子上按住滑动即可选择/取消。修改顶部总面积可重新校准。</p>';
@@ -373,6 +447,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   function handleGridStart(dx, dy){
     if(!polygon || !gridOn) return;
+    // 手动选格时退出比例模式
+    if(ratioActive) clearRatio();
     const [ix, iy] = dispToImg(dx, dy);
     const gridSize = GRID / scale;
     const gx = Math.floor(ix / gridSize);
@@ -419,6 +495,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     const minY = Math.min(...polygon.map(p=>p.y));
     const maxY = Math.max(...polygon.map(p=>p.y));
 
+    // 比例模式下用 A/B 区颜色
+    const useRatio = ratioActive !== null;
+    const aSet = new Set(sortedCellKeys.slice(0, ratioSplit));
+
     for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
       for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
         const cx = gx * gridSize + gridSize/2;
@@ -428,15 +508,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
         const [sx, sy] = imgToDisp(gx*gridSize, gy*gridSize);
         const gs = GRID;
         const key = `${gx},${gy}`;
-        const isSelected = selectedCells.has(key);
 
-        gridCtx.fillStyle = isSelected ? 'rgba(46,125,50,0.55)' : 'rgba(102,187,106,0.3)';
-        gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
-        gridCtx.strokeStyle = isSelected ? 'rgba(27,94,32,0.8)' : 'rgba(46,125,50,0.75)';
-        gridCtx.lineWidth = 1.5;
-        gridCtx.strokeRect(sx+0.5, sy+0.5, gs-1, gs-1);
+        if(useRatio){
+          const inA = aSet.has(key);
+          gridCtx.fillStyle = inA ? 'rgba(33,150,243,0.45)' : 'rgba(255,152,0,0.4)';
+          gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
+          gridCtx.strokeStyle = inA ? 'rgba(21,101,192,0.75)' : 'rgba(230,81,0,0.75)';
+          gridCtx.lineWidth = 1.5;
+          gridCtx.strokeRect(sx+0.5, sy+0.5, gs-1, gs-1);
+        } else {
+          const isSelected = selectedCells.has(key);
+          gridCtx.fillStyle = isSelected ? 'rgba(46,125,50,0.55)' : 'rgba(102,187,106,0.3)';
+          gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
+          gridCtx.strokeStyle = isSelected ? 'rgba(27,94,32,0.8)' : 'rgba(46,125,50,0.75)';
+          gridCtx.lineWidth = 1.5;
+          gridCtx.strokeRect(sx+0.5, sy+0.5, gs-1, gs-1);
+        }
       }
     }
+
+    // 比例模式下在A/B分界处画虚线标识
+    if(useRatio && ratioSplit > 0 && ratioSplit < sortedCellKeys.length){
+      const lastA = sortedCellKeys[ratioSplit - 1];
+      const [agx, agy] = lastA.split(',').map(Number);
+      const [asx, asy] = imgToDisp(agx*gridSize, agy*gridSize);
+      gridCtx.setLineDash([4, 3]);
+      gridCtx.strokeStyle = '#fff';
+      gridCtx.lineWidth = 2;
+      gridCtx.strokeRect(asx+0.5, asy+0.5, GRID-1, GRID-1);
+      gridCtx.setLineDash([]);
+    }
+
     updateArea();
   }
 
@@ -445,7 +547,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     const totalCells = countCellsInPolygon();
     const cellMu = totalAreaMu / totalCells;
     const cellSqm = totalAreaMu * 666.6667 / totalCells;
-    const sel = selectedCells.size;
+    // 比例模式下显示A区格数，手动模式下显示选中格数
+    const sel = ratioActive ? ratioSplit : selectedCells.size;
     const areaMu = sel * cellMu;
     const areaSqm = sel * cellSqm;
 
@@ -453,7 +556,97 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     document.getElementById('cell-count').textContent = sel;
     document.getElementById('area-val').textContent = areaMu.toFixed(3) + '亩';
     document.getElementById('area-sub').textContent = areaSqm.toFixed(1) + '㎡';
+    updateRatioDisplay();
   }
+
+  // ==================== 比例填充逻辑 ====================
+  // 按行优先（左上→右下）排序所有多边形内的格子
+  function computeSortedCells(){
+    if(!polygon){ sortedCellKeys = []; return; }
+    const gridSize = GRID / scale;
+    const minX = Math.min(...polygon.map(p=>p.x));
+    const maxX = Math.max(...polygon.map(p=>p.x));
+    const minY = Math.min(...polygon.map(p=>p.y));
+    const maxY = Math.max(...polygon.map(p=>p.y));
+    const cells = [];
+    for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
+      for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
+        const cx = gx * gridSize + gridSize/2;
+        const cy = gy * gridSize + gridSize/2;
+        if(pointInPolygon(cx, cy, polygon)){
+          cells.push(`${gx},${gy}`);
+        }
+      }
+    }
+    sortedCellKeys = cells;
+  }
+
+  function applyRatio(a, b){
+    if(!polygon) return;
+    computeSortedCells();
+    const total = sortedCellKeys.length;
+    if(total === 0) return;
+    ratioSplit = Math.round(total * a / (a + b));
+    ratioSplit = Math.max(0, Math.min(total, ratioSplit));
+    ratioActive = {a, b};
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+      btn.classList.toggle('active',
+        parseInt(btn.dataset.a) === a && parseInt(btn.dataset.b) === b);
+    });
+    ratioAInput.value = a;
+    ratioBInput.value = b;
+    drawGridSelected();
+    updateRatioDisplay();
+  }
+
+  function clearRatio(){
+    ratioActive = null;
+    ratioSplit = 0;
+    selectedCells.clear();
+    document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+    drawGridSelected();
+    updateRatioDisplay();
+    updateArea();
+  }
+
+  function updateRatioDisplay(){
+    if(!polygon || sortedCellKeys.length === 0){
+      document.getElementById('rl-pct').textContent = '--%';
+      document.getElementById('rl-a-cells').textContent = '0';
+      document.getElementById('rl-b-cells').textContent = '0';
+      document.getElementById('rl-a-area').textContent = '0.000亩';
+      document.getElementById('rl-b-area').textContent = '0.000亩';
+      return;
+    }
+    const total = sortedCellKeys.length;
+    const aCells = ratioActive ? ratioSplit : selectedCells.size;
+    const bCells = total - aCells;
+    const pct = total > 0 ? (aCells / total * 100).toFixed(1) : 0;
+    const cellMu = totalAreaMu / total;
+    const aArea = (aCells * cellMu).toFixed(3);
+    const bArea = (bCells * cellMu).toFixed(3);
+    document.getElementById('rl-pct').textContent = pct + '%';
+    document.getElementById('rl-a-cells').textContent = aCells;
+    document.getElementById('rl-b-cells').textContent = bCells;
+    document.getElementById('rl-a-area').textContent = aArea + '亩';
+    document.getElementById('rl-b-area').textContent = bArea + '亩';
+  }
+
+  // 比例按钮事件（预设）
+  ratioPresets.addEventListener('click', e => {
+    const btn = e.target.closest('.ratio-btn');
+    if(!btn) return;
+    const a = parseInt(btn.dataset.a);
+    const b = parseInt(btn.dataset.b);
+    applyRatio(a, b);
+  });
+
+  // 自定义比例按钮
+  ratioCustomBtn.addEventListener('click', () => {
+    const a = parseInt(ratioAInput.value) || 60;
+    const b = parseInt(ratioBInput.value) || 40;
+    applyRatio(a, b);
+  });
 
   // 网格画布事件
   gridCanvas.addEventListener('mousedown', e => {
@@ -538,6 +731,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       document.getElementById('cell-count').textContent = '0';
       document.getElementById('area-val').textContent = '0.000亩';
       document.getElementById('area-sub').textContent = '0.0㎡';
+      // 清除比例状态
+      clearRatio();
+      ratioPanel.style.display = 'none';
       hint.innerHTML = '<p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>';
     }
   });
