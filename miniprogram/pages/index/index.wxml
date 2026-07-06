@@ -1,0 +1,101 @@
+<view class="container">
+  <!-- 顶部 -->
+  <view class="header">
+    <text class="title">地块面积计算器</text>
+    <text class="subtitle">上传底图 · 手动描边 · 网格计算</text>
+  </view>
+
+  <!-- 工具栏 -->
+  <view class="toolbar">
+    <button class="btn btn-trace {{tracing ? 'active' : ''}}" bindtap="onTraceToggle">✏️ {{tracing ? '描边中...' : '开始描边'}}</button>
+    <button class="btn btn-undo" disabled="{{!canUndo}}" bindtap="onUndo">↩ 撤销</button>
+    <button class="btn btn-done" wx:if="{{showDoneBtn}}" bindtap="onDone">✅ 完成描边</button>
+    <button class="btn btn-clear" wx:if="{{showClearBtn}}" bindtap="onClear">🗑️ 清空</button>
+    <button class="btn btn-grid" wx:if="{{showGridBtn}}" bindtap="onGridToggle">🔲 {{gridOn ? '隐藏网格' : '显示网格'}}</button>
+  </view>
+
+  <!-- 信息栏 -->
+  <view class="info-bar">
+    <view class="info-item">
+      <text class="lbl">总面积（亩）</text>
+      <input class="val total-input" type="digit" value="{{totalArea}}" bindinput="onTotalAreaInput" bindblur="onTotalAreaBlur" />
+    </view>
+    <view class="info-item">
+      <text class="lbl">描点</text>
+      <text class="val">{{ptCount}}</text>
+    </view>
+    <view class="info-item">
+      <text class="lbl">总格数</text>
+      <text class="val">{{totalCellCount}}</text>
+    </view>
+    <view class="info-item">
+      <text class="lbl">选中格</text>
+      <text class="val">{{cellCount}}</text>
+    </view>
+    <view class="info-item">
+      <text class="lbl">选中面积</text>
+      <text class="val">{{areaVal}}</text>
+      <text class="sub">{{areaSub}}</text>
+    </view>
+  </view>
+
+  <!-- 主内容区 -->
+  <view class="main-content">
+    <view class="map-area" id="map-area">
+      <!-- 背景图 -->
+      <image wx:if="{{imgSrc}}" id="bg-img" src="{{imgSrc}}" mode="aspectFit" bindload="onImgLoad" />
+      <!-- 描边 canvas -->
+      <canvas type="2d" id="trace-canvas" class="trace-canvas"
+        bindtouchstart="onTraceTouchStart"
+        bindtouchmove="onTraceTouchMove"
+        bindtouchend="onTraceTouchEnd" />
+      <!-- 网格 canvas -->
+      <canvas type="2d" id="grid-canvas" class="grid-canvas"
+        bindtouchstart="onGridTouchStart"
+        bindtouchmove="onGridTouchMove"
+        bindtouchend="onGridTouchEnd" />
+      <!-- 描边提示 -->
+      <view class="trace-tip" wx:if="{{showTraceTip}}">{{traceTipText}}</view>
+    </view>
+
+    <!-- 比例面板 -->
+    <view class="ratio-panel" wx:if="{{showRatioPanel}}">
+      <view class="panel-title">📐 比例填充</view>
+      <view class="ratio-presets">
+        <button class="ratio-btn {{ratioA===60&&ratioB===40?'active':''}}" bindtap="onRatioPreset" data-a="60" data-b="40">60%</button>
+        <button class="ratio-btn {{ratioA===65&&ratioB===35?'active':''}}" bindtap="onRatioPreset" data-a="65" data-b="35">65%</button>
+        <button class="ratio-btn {{ratioA===70&&ratioB===30?'active':''}}" bindtap="onRatioPreset" data-a="70" data-b="30">70%</button>
+      </view>
+      <view class="ratio-custom">
+        <input type="number" class="ratio-input" value="{{ratioA}}" bindinput="onRatioAInput" />
+        <text class="pct-suffix">%</text>
+        <button class="ratio-apply-btn" bindtap="onRatioCustom">应用</button>
+      </view>
+      <view class="ratio-live">
+        <text class="rl-label">当前占比</text>
+        <text class="rl-pct">{{ratioPct}}</text>
+        <view class="rl-detail">
+          <text>A区: {{ratioACells}}格  B区: {{ratioBCells}}格</text>
+        </view>
+        <view class="rl-detail">
+          <text>A区面: {{ratioAArea}}  B区面: {{ratioBArea}}</text>
+        </view>
+      </view>
+      <view class="ratio-legend">
+        <view class="leg-a">A区</view>
+        <view class="leg-b">B区</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提示区 -->
+  <view class="hint">
+    <text>{{hintText}}</text>
+  </view>
+
+  <!-- 上传按钮（初始状态） -->
+  <view class="upload-area" wx:if="{{!imgSrc}}" bindtap="onChooseImage">
+    <view class="upload-icon">📷</view>
+    <text class="upload-text">点击上传地块规划图</text>
+  </view>
+</view>

@@ -1,0 +1,368 @@
+/* pages/index/index.wxss */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f0f2f5;
+  position: relative;
+}
+
+/* 上传区域（初始状态） */
+.upload-area {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+  z-index: 100;
+}
+.upload-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+.upload-text {
+  font-size: 16px;
+  color: #888;
+}
+
+/* 顶部 */
+.header {
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  color: #fff;
+  text-align: center;
+}
+.header .title {
+  font-size: 16px;
+  font-weight: 600;
+  display: block;
+}
+.header .subtitle {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 2px;
+  display: block;
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+.btn::after {
+  border: none;
+}
+.btn-trace {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.btn-trace.active {
+  background: #1565c0;
+  color: #fff;
+}
+.btn-undo {
+  background: #fff3e0;
+  color: #e65100;
+}
+.btn-undo[disabled] {
+  opacity: 0.4;
+}
+.btn-done {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.btn-clear {
+  background: #ffebee;
+  color: #c62828;
+}
+.btn-grid {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+/* 主内容区 */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .main-content {
+    flex-direction: column;
+  }
+}
+
+/* 地图区域 */
+.map-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #fafafa;
+  min-height: 300px;
+}
+#bg-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.trace-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.grid-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  display: none;
+}
+.grid-canvas.show {
+  display: block;
+}
+
+/* 信息栏 */
+.info-bar {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+.info-item {
+  flex: 1;
+  text-align: center;
+  padding: 2px;
+}
+.info-item .lbl {
+  font-size: 9px;
+  color: #999;
+  display: block;
+}
+.info-item .val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #2e7d32;
+  display: block;
+  line-height: 1.2;
+}
+.info-item .sub {
+  font-size: 9px;
+  color: #aaa;
+}
+.total-input {
+  width: 80px;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2e7d32;
+  text-align: center;
+  background: #f1f8e9;
+}
+
+/* 提示 */
+.hint {
+  padding: 8px 10px;
+  background: #fffbeb;
+  border-top: 1px solid #fef3c7;
+  text-align: center;
+}
+.hint text {
+  font-size: 13px;
+  color: #a16207;
+  line-height: 1.4;
+}
+
+/* 描边提示 */
+.trace-tip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 10;
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 比例面板 */
+.ratio-panel {
+  width: 200px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-left: 1px solid #e8e8e8;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  text-align: center;
+}
+.ratio-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.ratio-btn {
+  padding: 8px 10px;
+  border: 2px solid #bbb;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  line-height: 1.2;
+  margin: 0;
+}
+.ratio-btn::after {
+  border: none;
+}
+.ratio-btn.active {
+  border-color: #1565c0;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.ratio-live {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+.rl-label {
+  font-size: 10px;
+  color: #999;
+  display: block;
+}
+.rl-pct {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1565c0;
+  line-height: 1.1;
+  display: block;
+}
+.rl-detail {
+  font-size: 10px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.ratio-legend {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  font-size: 10px;
+  color: #666;
+}
+.leg-a::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #2196f3;
+  border-radius: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+.leg-b::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #ff9800;
+  border-radius: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.ratio-custom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+.ratio-input {
+  width: 64px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+.pct-suffix {
+  font-size: 14px;
+  font-weight: 700;
+  color: #555;
+}
+.ratio-apply-btn {
+  padding: 6px 14px;
+  border: 1px solid #1565c0;
+  border-radius: 6px;
+  background: #1565c0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+.ratio-apply-btn::after {
+  border: none;
+}
+
+@media (max-width: 640px) {
+  .ratio-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e8e8e8;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    justify-content: center;
+  }
+  .panel-title {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .ratio-live {
+    flex: 1;
+    min-width: 120px;
+  }
+}
