@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>A24 地块 - 描边面积计算</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f2f5;color:#333;overflow-y:auto;overflow-x:hidden;-webkit-user-select:none;user-select:none}
+.container{display:flex;flex-direction:column;height:100vh;max-width:860px;margin:0 auto;background:#fff;position:relative}
+.main-content{display:flex;flex:1;overflow:hidden}
+@media(max-width:640px){.main-content{flex-direction:column}}
+.header{padding:8px 12px;background:linear-gradient(135deg,#2e7d32,#43a047);color:#fff;text-align:center;flex-shrink:0}
+.header h1{font-size:15px;font-weight:600}
+.header p{font-size:10px;opacity:.85;margin-top:2px}
+
+.toolbar{display:flex;gap:6px;padding:6px 10px;background:#fff;border-bottom:1px solid #e8e8e8;flex-shrink:0;flex-wrap:wrap;justify-content:center}
+.toolbar button{padding:5px 12px;border:none;border-radius:14px;font-size:11px;cursor:pointer;font-weight:500;outline:none;-webkit-tap-highlight-color:transparent;transition:all .15s}
+.toolbar button:active{transform:scale(.95)}
+  .toolbar button:disabled{opacity:0.4;cursor:not-allowed}
+  .btn-trace{background:#e3f2fd;color:#1565c0}
+  .btn-trace.active{background:#1565c0;color:#fff}
+  .btn-undo{background:#fff3e0;color:#e65100}
+  .btn-clear{background:#ffebee;color:#c62828}
+  .btn-done{background:#e8f5e9;color:#2e7d32;display:none}
+  .btn-done.show{display:inline-block}
+  .btn-grid{background:#f3e5f5;color:#6a1b9a}
+
+.map-area{flex:1;position:relative;overflow:hidden;background:#fafafa;touch-action:manipulation;min-height:300px}
+#bg-img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;pointer-events:none;z-index:1}
+#trace-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;touch-action:auto;pointer-events:none}
+#grid-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;touch-action:auto;pointer-events:none;display:none}
+
+.info-bar{display:flex;justify-content:space-around;padding:6px;background:#fff;border-bottom:1px solid #e8e8e8;flex-shrink:0}
+.info-item{flex:1;text-align:center;padding:2px}
+.info-item .lbl{font-size:9px;color:#999;display:block}
+.info-item .val{font-size:22px;font-weight:800;color:#2e7d32;display:block;line-height:1.2}
+.info-item .sub{font-size:9px;color:#aaa}
+
+.hint{padding:5px 10px;background:#fffbeb;border-top:1px solid #fef3c7;text-align:center;flex-shrink:0}
+.hint p{font-size:10px;color:#a16207;line-height:1.4}
+
+/* 总面积输入框 */
+.total-input{
+  width: 100px;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2e7d32;
+  text-align: center;
+  background: #f1f8e9;
+  outline: none;
+}
+.total-input:focus{
+  border-color: #2e7d32;
+  background: #fff;
+}
+.total-area-item .val{
+  display: inline-block;
+}
+.trace-tip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;z-index:10;pointer-events:none;display:none;text-align:center;line-height:1.5}
+
+/* 比例面板 */
+.ratio-panel{
+  width:200px;flex-shrink:0;background:#fafafa;border-left:1px solid #e8e8e8;
+  padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;
+}
+.ratio-panel .title{font-size:13px;font-weight:700;color:#555;text-align:center}
+.ratio-presets{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.ratio-btn{
+  padding:8px 10px;border:2px solid #bbb;border-radius:8px;background:#fff;
+  font-size:13px;font-weight:700;color:#555;cursor:pointer;outline:none;
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.ratio-btn:active{transform:scale(.95)}
+.ratio-btn:hover{border-color:#1565c0;color:#1565c0}
+.ratio-btn.active{border-color:#1565c0;background:#e3f2fd;color:#1565c0}
+
+.ratio-live{background:#fff;border:2px solid #e0e0e0;border-radius:8px;padding:10px;text-align:center}
+.ratio-live .rl-label{font-size:10px;color:#999;display:block}
+.ratio-live .rl-pct{font-size:28px;font-weight:800;color:#1565c0;line-height:1.1}
+.ratio-live .rl-detail{font-size:10px;color:#888;margin-top:4px}
+.ratio-live .rl-detail span{font-weight:700;color:#333}
+.ratio-legend{display:flex;gap:10px;justify-content:center;font-size:10px;color:#666}
+.ratio-legend .leg-a::before{content:"";display:inline-block;width:10px;height:10px;background:#2196f3;border-radius:2px;margin-right:3px;vertical-align:middle}
+.ratio-legend .leg-b::before{content:"";display:inline-block;width:10px;height:10px;background:#ff9800;border-radius:2px;margin-right:3px;vertical-align:middle}
+.ratio-custom{display:flex;gap:4px;align-items:center;justify-content:center}
+.ratio-custom input{width:48px;padding:4px;border:1px solid #ccc;border-radius:4px;font-size:12px;text-align:center;outline:none}
+.ratio-custom input:focus{border-color:#1565c0}
+.ratio-custom .sep{font-size:11px;color:#999}
+.ratio-custom button{padding:4px 8px;border:1px solid #1565c0;border-radius:4px;background:#1565c0;color:#fff;font-size:11px;cursor:pointer}
+
+@media(max-width:640px){
+  .ratio-panel{width:100%;border-left:none;border-top:1px solid #e8e8e8;flex-direction:row;flex-wrap:wrap;gap:6px;padding:8px;justify-content:center}
+  .ratio-panel .title{width:100%;margin-bottom:0}
+  .ratio-live{flex:1;min-width:120px}
+  .ratio-presets{flex:2}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>A24 地块面积计算器</h1>
+    <p>原图底图 · 手动描边 · 网格计算</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn-trace" id="btn-trace">✏️ 开始描边</button>
+    <button class="btn-undo" id="btn-undo" disabled>↩ 撤销</button>
+    <button class="btn-done" id="btn-done">✅ 完成描边</button>
+    <button class="btn-clear" id="btn-clear" style="display:none">🗑️ 清空</button>
+    <button class="btn-grid" id="btn-grid" style="display:none">🔲 显示网格</button>
+  </div>
+
+  <div class="info-bar">
+    <div class="info-item total-area-item">
+      <span class="lbl">总面积（亩）</span>
+      <input class="val total-input" id="total-area-input" type="number" step="0.01" min="0" value="1.12">
+    </div>
+    <div class="info-item">
+      <span class="lbl">描点</span>
+      <span class="val" id="pt-count">0</span>
+    </div>
+    <div class="info-item">
+      <span class="lbl">总格数</span>
+      <span class="val" id="total-cell-count">0</span>
+    </div>
+    <div class="info-item">
+      <span class="lbl">选中格</span>
+      <span class="val" id="cell-count">0</span>
+    </div>
+    <div class="info-item">
+      <span class="lbl">选中面积</span>
+      <span class="val" id="area-val">0.000亩</span>
+      <span class="sub" id="area-sub">0.0㎡</span>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="map-area" id="map-area">
+      <img id="bg-img" src="../assets/a24-map.png" alt="规划图">
+      <canvas id="trace-canvas"></canvas>
+      <canvas id="grid-canvas"></canvas>
+      <div class="trace-tip" id="trace-tip">点击图片描出 A24 边界<br>双击或点击起点闭合</div>
+    </div>
+
+    <div class="ratio-panel" id="ratio-panel" style="display:none">
+      <div class="title">📐 比例填充</div>
+      <div class="ratio-presets" id="ratio-presets">
+        <button class="ratio-btn" data-a="60" data-b="40">60/40</button>
+        <button class="ratio-btn" data-a="65" data-b="35">65/35</button>
+        <button class="ratio-btn" data-a="70" data-b="30">70/30</button>
+      </div>
+      <div class="ratio-custom">
+        <input type="number" id="ratio-a-input" value="60" min="1" max="99" step="1">
+        <span class="sep">/</span>
+        <input type="number" id="ratio-b-input" value="40" min="1" max="99" step="1">
+        <button id="ratio-custom-btn">应用</button>
+      </div>
+      <div class="ratio-live" id="ratio-live">
+        <span class="rl-label">当前占比</span>
+        <span class="rl-pct" id="rl-pct">--%</span>
+        <div class="rl-detail">
+          A区: <span id="rl-a-cells">0</span>格 &nbsp; B区: <span id="rl-b-cells">0</span>格
+        </div>
+        <div class="rl-detail">
+          A区面: <span id="rl-a-area">0.000亩</span> &nbsp; B区面: <span id="rl-b-area">0.000亩</span>
+        </div>
+      </div>
+      <div class="ratio-legend">
+        <span class="leg-a">A区</span>
+        <span class="leg-b">B区</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">
+    <p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ==================== 元素 ====================
+  const mapArea       = document.getElementById('map-area');
+  const bgImg         = document.getElementById('bg-img');
+  const traceCanvas    = document.getElementById('trace-canvas');
+  const gridCanvas     = document.getElementById('grid-canvas');
+  const traceCtx       = traceCanvas.getContext('2d');
+  const gridCtx        = gridCanvas.getContext('2d');
+  const btnTrace       = document.getElementById('btn-trace');
+  const btnUndo        = document.getElementById('btn-undo');
+  const btnDone        = document.getElementById('btn-done');
+  const btnClear       = document.getElementById('btn-clear');
+  const btnGrid        = document.getElementById('btn-grid');
+  const traceTip       = document.getElementById('trace-tip');
+  const hint           = document.getElementById('hint');
+  const totalAreaInput = document.getElementById('total-area-input');
+
+  // 比例面板元素
+  const ratioPanel     = document.getElementById('ratio-panel');
+  const ratioPresets   = document.getElementById('ratio-presets');
+  const ratioLive      = document.getElementById('ratio-live');
+  const ratioAInput    = document.getElementById('ratio-a-input');
+  const ratioBInput    = document.getElementById('ratio-b-input');
+  const ratioCustomBtn = document.getElementById('ratio-custom-btn');
+
+  // ==================== 状态 ====================
+  let imgW = 0, imgH = 0;          // 图片原始尺寸
+  let dispW = 0, dispH = 0;        // 显示尺寸
+  let offsetX = 0, offsetY = 0;    // 图片在canvas中的偏移
+  let scale = 1;                    // 图片缩放比
+
+  let tracing = false;              // 是否正在描边
+  let points = [];                  // 描边点 [{x, y}]（图片坐标）
+  let polygon = null;               // 闭合后的多边形 [{x, y}]
+  let gridOn = false;               // 网格是否显示
+  let selectedCells = new Set();    // 选中的格子 set
+
+  // 比例模式
+  let ratioActive = null;           // 当前激活的比例 {a: 60, b: 40}，null=关闭
+  let ratioSplit = 0;               // A区格数（从左上角数起的格子数）
+  let sortedCellKeys = [];          // 按行优先排序的格子key列表
+
+  // 面积配置（可编辑）
+  let totalAreaMu = 1.12;           // 总面积（亩），跟随输入框变化
+  const GRID = 20;                  // 网格边长（显示像素）
+
+  // 总面积输入框事件
+  totalAreaInput.addEventListener('input', ()=>{
+    const v = parseFloat(totalAreaInput.value);
+    if(!isNaN(v) && v > 0) totalAreaMu = v;
+    if(polygon) drawGridSelected();
+  });
+  totalAreaInput.addEventListener('change', ()=>{
+    const v = parseFloat(totalAreaInput.value);
+    if(isNaN(v) || v <= 0) totalAreaInput.value = totalAreaMu.toFixed(2);
+  });
+
+  // ==================== 图片加载 ====================
+  bgImg.onload = function(){
+    imgW = bgImg.naturalWidth;
+    imgH = bgImg.naturalHeight;
+    resize();
+  };
+  window.addEventListener('resize', resize);
+
+  function resize(){
+    // 使用 offsetWidth/offsetHeight（整数），避免 getBoundingClientRect 浮点数导致 canvas 尺寸不匹配
+    dispW = mapArea.offsetWidth;
+    dispH = mapArea.offsetHeight;
+
+    // 计算图片在容器中的实际显示区域（object-fit: contain）
+    const imgRatio = imgW / imgH;
+    const areaRatio = dispW / dispH;
+    if(imgRatio > areaRatio){
+      // 图片更宽，以宽度为基准
+      scale = dispW / imgW;
+      offsetX = 0;
+      offsetY = (dispH - imgH * scale) / 2;
+    } else {
+      // 图片更高，以高度为基准
+      scale = dispH / imgH;
+      offsetX = (dispW - imgW * scale) / 2;
+      offsetY = 0;
+    }
+
+    // 显式设置 canvas 尺寸，确保 drawing buffer 与 CSS 尺寸一致
+    traceCanvas.width = dispW;
+    traceCanvas.height = dispH;
+    traceCanvas.style.width = dispW + 'px';
+    traceCanvas.style.height = dispH + 'px';
+    gridCanvas.width = dispW;
+    gridCanvas.height = dispH;
+    gridCanvas.style.width = dispW + 'px';
+    gridCanvas.style.height = dispH + 'px';
+
+    redrawTrace();
+    if(polygon){
+      drawGrid();
+      // 比例模式下重新计算格子排序和分界
+      if(ratioActive){
+        computeSortedCells();
+        applyRatio(ratioActive.a, ratioActive.b);
+      }
+    }
+  }
+
+  // ==================== 坐标转换 ====================
+  // 显示坐标 → 图片坐标
+  function dispToImg(dx, dy){
+    return [(dx - offsetX) / scale, (dy - offsetY) / scale];
+  }
+
+  // 图片坐标 → 显示坐标
+  function imgToDisp(ix, iy){
+    return [ix * scale + offsetX, iy * scale + offsetY];
+  }
+
+  // ==================== 描边绘制 ====================
+  function redrawTrace(){
+    traceCtx.clearRect(0, 0, dispW, dispH);
+    if(points.length === 0) return;
+
+    // 统一画边界线（含闭合线）
+    traceCtx.beginPath();
+    const [sx, sy] = imgToDisp(points[0].x, points[0].y);
+    traceCtx.moveTo(sx, sy);
+    for(let i = 1; i < points.length; i++){
+      const [px, py] = imgToDisp(points[i].x, points[i].y);
+      traceCtx.lineTo(px, py);
+    }
+    // 如果已闭合，补画最后一条回到起点的线
+    if(polygon) traceCtx.closePath();
+    traceCtx.strokeStyle = '#d32f2f';
+    traceCtx.lineWidth = 2.5;
+    traceCtx.lineJoin = 'round';
+    traceCtx.stroke();
+
+    // 如果已闭合，填充半透明绿色
+    if(polygon){
+      traceCtx.fillStyle = 'rgba(46,125,50,0.12)';
+      traceCtx.fill();
+    }
+
+    // 画点
+    points.forEach((p, i) => {
+      const [px, py] = imgToDisp(p.x, p.y);
+      traceCtx.beginPath();
+      traceCtx.arc(px, py, i === 0 ? 6 : 4.5, 0, Math.PI * 2);
+      traceCtx.fillStyle = i === 0 ? '#d32f2f' : '#ff8a65';
+      traceCtx.fill();
+      traceCtx.strokeStyle = '#fff';
+      traceCtx.lineWidth = 1.5;
+      traceCtx.stroke();
+    });
+  }
+
+  // ==================== 网格绘制 ====================
+  function drawGrid(){
+    // 旧版：首次完成时调用，现在统一用 drawGridSelected
+    drawGridSelected();
+  }
+
+  // ==================== 计算多边形内格子数 ====================
+  function countCellsInPolygon(){
+    if(!polygon) return 0;
+    const minX = Math.min(...polygon.map(p=>p.x));
+    const maxX = Math.max(...polygon.map(p=>p.x));
+    const minY = Math.min(...polygon.map(p=>p.y));
+    const maxY = Math.max(...polygon.map(p=>p.y));
+    const gridSize = GRID / scale;
+    let count = 0;
+    for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
+      for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
+        const cx = gx * gridSize + gridSize/2;
+        const cy = gy * gridSize + gridSize/2;
+        if(pointInPolygon(cx, cy, polygon)) count++;
+      }
+    }
+    return count;
+  }
+
+  // ==================== 点在多边形内 ====================
+  function pointInPolygon(x, y, poly){
+    let inside = false;
+    for(let i = 0, j = poly.length - 1; i < poly.length; j = i++){
+      const xi = poly[i].x, yi = poly[i].y;
+      const xj = poly[j].x, yj = poly[j].y;
+      const intersect = ((yi > y) !== (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if(intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  // ==================== 描边交互 ====================
+  function getEventPos(e){
+    const rect = traceCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return [clientX - rect.left, clientY - rect.top];
+  }
+
+  function handleTraceStart(dx, dy){
+    if(!tracing) return;
+    const [ix, iy] = dispToImg(dx, dy);
+
+    // 检查是否点击了起点（闭合）
+    if(points.length >= 3){
+      const [sx, sy] = imgToDisp(points[0].x, points[0].y);
+      const dist = Math.hypot(dx - sx, dy - sy);
+      if(dist < 20){
+        finishTrace();
+        return;
+      }
+    }
+
+    points.push({x: ix, y: iy});
+    document.getElementById('pt-count').textContent = points.length;
+    btnUndo.disabled = false;
+    redrawTrace();
+  }
+
+  function finishTrace(){
+    if(points.length < 3){
+      alert('至少需要3个点才能形成封闭区域');
+      return;
+    }
+    polygon = [...points];
+    tracing = false;
+    traceCanvas.style.pointerEvents = 'none';
+    btnTrace.classList.remove('active');
+    btnTrace.innerHTML = '✏️ 开始描边';
+    btnDone.classList.remove('show');
+    btnUndo.disabled = true;
+    btnClear.style.display = 'inline-block';
+    gridOn = false;
+    gridCanvas.style.display = 'none';
+    traceTip.style.display = 'none';
+
+    redrawTrace();
+    // 显示比例面板，预计算排序格子
+    ratioPanel.style.display = 'flex';
+    computeSortedCells();
+    updateRatioDisplay();
+    hint.innerHTML = '<p>描边完成！右侧比例按钮可自动填充，也可手动滑动选格</p>';
+
+    // 自动显示网格
+    setTimeout(()=>{
+      gridOn = true;
+      gridCanvas.style.display = 'block';
+      gridCanvas.style.pointerEvents = 'auto';
+      btnGrid.textContent = '🔲 隐藏网格';
+      drawGridSelected();
+      hint.innerHTML = '<p>在格子上按住滑动即可选择/取消。修改顶部总面积可重新校准。</p>';
+    }, 300);
+  }
+
+  // 描边画布事件
+  traceCanvas.addEventListener('mousedown', e => {
+    if(!tracing) return;
+    e.preventDefault();
+    handleTraceStart(e.clientX - traceCanvas.getBoundingClientRect().left,
+                     e.clientY - traceCanvas.getBoundingClientRect().top);
+  });
+
+  traceCanvas.addEventListener('touchstart', e => {
+    if(!tracing) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = traceCanvas.getBoundingClientRect();
+    handleTraceStart(t.clientX - rect.left, t.clientY - rect.top);
+  }, {passive:false});
+
+  // 双击完成
+  traceCanvas.addEventListener('dblclick', () => {
+    if(tracing && points.length >= 3) finishTrace();
+  });
+
+  // ==================== 网格选择交互 ====================
+  let dragging = false;
+  let dragMode = null;
+
+  function handleGridStart(dx, dy){
+    if(!polygon || !gridOn) return;
+    // 手动选格时退出比例模式
+    if(ratioActive) clearRatio();
+    const [ix, iy] = dispToImg(dx, dy);
+    const gridSize = GRID / scale;
+    const gx = Math.floor(ix / gridSize);
+    const gy = Math.floor(iy / gridSize);
+    const key = `${gx},${gy}`;
+    const cx = gx * gridSize + gridSize/2;
+    const cy = gy * gridSize + gridSize/2;
+    if(!pointInPolygon(cx, cy, polygon)) return;
+
+    dragging = true;
+    dragMode = selectedCells.has(key) ? 'del' : 'add';
+    toggleCell(gx, gy);
+  }
+
+  function handleGridMove(dx, dy){
+    if(!dragging) return;
+    const [ix, iy] = dispToImg(dx, dy);
+    const gridSize = GRID / scale;
+    const gx = Math.floor(ix / gridSize);
+    const gy = Math.floor(iy / gridSize);
+    toggleCell(gx, gy);
+  }
+
+  function toggleCell(gx, gy){
+    const key = `${gx},${gy}`;
+    const gridSize = GRID / scale;
+    const cx = gx * gridSize + gridSize/2;
+    const cy = gy * gridSize + gridSize/2;
+    if(!pointInPolygon(cx, cy, polygon)) return;
+
+    if(dragMode === 'add') selectedCells.add(key);
+    else selectedCells.delete(key);
+    drawGridSelected();
+    updateArea();
+  }
+
+  function drawGridSelected(){
+    gridCtx.clearRect(0, 0, dispW, dispH);
+    if(!polygon) return;
+
+    const gridSize = GRID / scale;
+    const minX = Math.min(...polygon.map(p=>p.x));
+    const maxX = Math.max(...polygon.map(p=>p.x));
+    const minY = Math.min(...polygon.map(p=>p.y));
+    const maxY = Math.max(...polygon.map(p=>p.y));
+
+    // 比例模式下用 A/B 区颜色；普通模式用选中/未选中颜色
+    const useRatio = ratioActive !== null;
+    const aSet = new Set(sortedCellKeys.slice(0, ratioSplit));
+
+    for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
+      for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
+        const cx = gx * gridSize + gridSize/2;
+        const cy = gy * gridSize + gridSize/2;
+        if(!pointInPolygon(cx, cy, polygon)) continue;
+
+        const [sx, sy] = imgToDisp(gx*gridSize, gy*gridSize);
+        const gs = GRID;
+        const key = `${gx},${gy}`;
+
+        if(useRatio){
+          // 比例模式：A区蓝色，B区橙色
+          const inA = aSet.has(key);
+          gridCtx.fillStyle = inA ? 'rgba(33,150,243,0.45)' : 'rgba(255,152,0,0.4)';
+          gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
+          gridCtx.strokeStyle = inA ? 'rgba(21,101,192,0.75)' : 'rgba(230,81,0,0.75)';
+          gridCtx.lineWidth = 1.5;
+          gridCtx.strokeRect(sx+0.5, sy+0.5, gs-1, gs-1);
+          // 分割线格子加粗边框
+          if(inA && !aSet.has(sortedCellKeys[Math.min(ratioSplit, sortedCellKeys.length-1)])){
+            // 不是最后一个A格不特殊处理，用绘制分割虚线替代
+          }
+        } else {
+          // 普通模式
+          const isSelected = selectedCells.has(key);
+          gridCtx.fillStyle = isSelected ? 'rgba(46,125,50,0.55)' : 'rgba(102,187,106,0.3)';
+          gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
+          gridCtx.strokeStyle = isSelected ? 'rgba(27,94,32,0.8)' : 'rgba(46,125,50,0.75)';
+          gridCtx.lineWidth = 1.5;
+          gridCtx.strokeRect(sx+0.5, sy+0.5, gs-1, gs-1);
+        }
+      }
+    }
+
+    // 比例模式下在A/B分界处画虚线
+    if(useRatio && ratioSplit > 0 && ratioSplit < sortedCellKeys.length){
+      const lastA = sortedCellKeys[ratioSplit - 1];
+      const [agx, agy] = lastA.split(',').map(Number);
+      const [asx, asy] = imgToDisp(agx*gridSize, agy*gridSize);
+      gridCtx.setLineDash([4, 3]);
+      gridCtx.strokeStyle = '#fff';
+      gridCtx.lineWidth = 2;
+      gridCtx.strokeRect(asx+0.5, asy+0.5, GRID-1, GRID-1);
+      gridCtx.setLineDash([]);
+    }
+
+    updateArea();
+  }
+
+  // ==================== 比例填充逻辑 ====================
+  // 按行优先（左上→右下）排序所有多边形内的格子
+  function computeSortedCells(){
+    if(!polygon){ sortedCellKeys = []; return; }
+    const gridSize = GRID / scale;
+    const minX = Math.min(...polygon.map(p=>p.x));
+    const maxX = Math.max(...polygon.map(p=>p.x));
+    const minY = Math.min(...polygon.map(p=>p.y));
+    const maxY = Math.max(...polygon.map(p=>p.y));
+    const cells = [];
+    for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
+      for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
+        const cx = gx * gridSize + gridSize/2;
+        const cy = gy * gridSize + gridSize/2;
+        if(pointInPolygon(cx, cy, polygon)){
+          cells.push(`${gx},${gy}`);
+        }
+      }
+    }
+    sortedCellKeys = cells; // 遍历顺序已是行优先（gy外层=g行，gx内层=列，从上到下，从左到右），无需再sort
+  }
+
+  function applyRatio(a, b){
+    if(!polygon) return;
+    computeSortedCells();
+    const total = sortedCellKeys.length;
+    if(total === 0) return;
+
+    // A区格数 = round(total * a / (a+b))
+    ratioSplit = Math.round(total * a / (a + b));
+    ratioSplit = Math.max(0, Math.min(total, ratioSplit));
+    ratioActive = {a, b};
+
+    // 更新UI - 高亮对应按钮
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+      btn.classList.toggle('active',
+        parseInt(btn.dataset.a) === a && parseInt(btn.dataset.b) === b);
+    });
+    // 同步自定义输入框
+    ratioAInput.value = a;
+    ratioBInput.value = b;
+
+    drawGridSelected();
+    updateRatioDisplay();
+  }
+
+  function clearRatio(){
+    ratioActive = null;
+    ratioSplit = 0;
+    selectedCells.clear();
+    document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+    drawGridSelected();
+    updateRatioDisplay();
+    updateArea();
+  }
+
+  function updateRatioDisplay(){
+    if(!polygon || sortedCellKeys.length === 0){
+      document.getElementById('rl-pct').textContent = '--%';
+      document.getElementById('rl-a-cells').textContent = '0';
+      document.getElementById('rl-b-cells').textContent = '0';
+      document.getElementById('rl-a-area').textContent = '0.000亩';
+      document.getElementById('rl-b-area').textContent = '0.000亩';
+      return;
+    }
+    const total = sortedCellKeys.length;
+    const aCells = ratioActive ? ratioSplit : selectedCells.size;
+    const bCells = total - aCells;
+    const pct = total > 0 ? (aCells / total * 100).toFixed(1) : 0;
+    const cellMu = totalAreaMu / total;
+    const aArea = (aCells * cellMu).toFixed(3);
+    const bArea = (bCells * cellMu).toFixed(3);
+
+    document.getElementById('rl-pct').textContent = pct + '%';
+    document.getElementById('rl-a-cells').textContent = aCells;
+    document.getElementById('rl-b-cells').textContent = bCells;
+    document.getElementById('rl-a-area').textContent = aArea + '亩';
+    document.getElementById('rl-b-area').textContent = bArea + '亩';
+  }
+
+  // 比例按钮事件（预设）
+  ratioPresets.addEventListener('click', e => {
+    const btn = e.target.closest('.ratio-btn');
+    if(!btn) return;
+    const a = parseInt(btn.dataset.a);
+    const b = parseInt(btn.dataset.b);
+    applyRatio(a, b);
+  });
+
+  // 自定义比例按钮
+  ratioCustomBtn.addEventListener('click', () => {
+    const a = parseInt(ratioAInput.value) || 60;
+    const b = parseInt(ratioBInput.value) || 40;
+    applyRatio(a, b);
+  });
+
+  function updateArea(){
+    if(!polygon) return;
+    const totalCells = countCellsInPolygon();
+    const cellMu = totalAreaMu / totalCells;
+    const cellSqm = totalAreaMu * 666.6667 / totalCells;
+    // 比例模式下显示A区格数，手动模式下显示选中格数
+    const sel = ratioActive ? ratioSplit : selectedCells.size;
+    const areaMu = sel * cellMu;
+    const areaSqm = sel * cellSqm;
+
+    document.getElementById('total-cell-count').textContent = totalCells;
+    document.getElementById('cell-count').textContent = sel;
+    document.getElementById('area-val').textContent = areaMu.toFixed(3) + '亩';
+    document.getElementById('area-sub').textContent = areaSqm.toFixed(1) + '㎡';
+    updateRatioDisplay();
+  }
+
+  // 网格画布事件
+  gridCanvas.addEventListener('mousedown', e => {
+    if(!polygon || !gridOn) return;
+    e.preventDefault();
+    const rect = gridCanvas.getBoundingClientRect();
+    handleGridStart(e.clientX - rect.left, e.clientY - rect.top);
+  });
+  window.addEventListener('mousemove', e => {
+    if(dragging){
+      e.preventDefault();
+      const rect = gridCanvas.getBoundingClientRect();
+      handleGridMove(e.clientX - rect.left, e.clientY - rect.top);
+    }
+  });
+  window.addEventListener('mouseup', ()=>{ dragging = false; dragMode = null; });
+
+  gridCanvas.addEventListener('touchstart', e => {
+    if(!polygon || !gridOn) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = gridCanvas.getBoundingClientRect();
+    handleGridStart(t.clientX - rect.left, t.clientY - rect.top);
+  }, {passive:false});
+  window.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    if(e.touches.length !== 1){ dragging = false; return; }
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = gridCanvas.getBoundingClientRect();
+    handleGridMove(t.clientX - rect.left, t.clientY - rect.top);
+  }, {passive:false});
+  window.addEventListener('touchend', ()=>{ dragging = false; dragMode = null; });
+
+  // ==================== 按钮 ====================
+  btnTrace.addEventListener('click', ()=>{
+    tracing = !tracing;
+    btnTrace.classList.toggle('active', tracing);
+    btnTrace.innerHTML = tracing ? '✏️ 描边中...' : '✏️ 开始描边';
+    btnUndo.disabled = !tracing;
+    btnDone.classList.toggle('show', tracing);
+    traceTip.style.display = tracing ? 'block' : 'none';
+    traceCanvas.style.pointerEvents = tracing ? 'auto' : 'none';
+    if(tracing){
+      hint.innerHTML = '<p>请在图上 A24 边界处点击描点，至少3个点<br>双击或点击起点（红圈）完成描边</p>';
+    } else if(!polygon){
+      hint.innerHTML = '<p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>';
+    }
+  });
+
+  btnUndo.addEventListener('click', ()=>{
+    if(points.length > 0){
+      points.pop();
+      document.getElementById('pt-count').textContent = points.length;
+      redrawTrace();
+      if(points.length === 0) btnUndo.disabled = true;
+    }
+  });
+
+  btnDone.addEventListener('click', ()=>{
+    if(points.length >= 3) finishTrace();
+  });
+
+  btnClear.addEventListener('click', ()=>{
+    if(confirm('确定要清空所有描边吗？')){
+      points = [];
+      polygon = null;
+      selectedCells.clear();
+      tracing = false;
+      gridOn = false;
+      gridCanvas.style.display = 'none';
+      gridCanvas.style.pointerEvents = 'none';
+      traceCanvas.style.pointerEvents = 'none';
+      btnTrace.classList.remove('active');
+      btnTrace.innerHTML = '✏️ 开始描边';
+      btnUndo.disabled = true;
+      btnClear.style.display = 'none';
+      btnGrid.style.display = 'none';
+      traceCtx.clearRect(0,0,dispW,dispH);
+      gridCtx.clearRect(0,0,dispW,dispH);
+      document.getElementById('pt-count').textContent = '0';
+      document.getElementById('cell-count').textContent = '0';
+      document.getElementById('area-val').textContent = '0.000亩';
+      document.getElementById('area-sub').textContent = '0.0㎡';
+      // 清除比例状态
+      clearRatio();
+      ratioPanel.style.display = 'none';
+      hint.innerHTML = '<p>第一步：点击「开始描边」，在图上点出 A24 的边界线</p>';
+    }
+  });
+
+  btnGrid.addEventListener('click', ()=>{
+    gridOn = !gridOn;
+    gridCanvas.style.display = gridOn ? 'block' : 'none';
+    gridCanvas.style.pointerEvents = gridOn ? 'auto' : 'none';
+    btnGrid.textContent = gridOn ? '🔲 隐藏网格' : '🔲 显示网格';
+    if(gridOn) drawGridSelected();
+  });
+
+})();
+</script>
+</body>
+</html>
