@@ -26,10 +26,12 @@
       <text class="lbl">选中格</text>
       <text class="val">{{cellCount}}</text>
     </view>
-    <view class="info-item">
+    <view class="info-item info-area">
       <text class="lbl">选中面积</text>
-      <text class="val">{{areaVal}}</text>
-      <text class="sub">{{areaSub}}</text>
+      <view class="area-row">
+        <text class="val">{{areaVal}}</text>
+        <text class="sub">{{areaSub}}</text>
+      </view>
     </view>
   </view>
 

@@ -221,6 +221,23 @@
   font-size: 9px;
   color: #aaa;
 }
+/* 选中面积：亩和㎡同行 */
+.info-area .area-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+}
+.info-area .val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2e7d32;
+  line-height: 1.2;
+}
+.info-area .sub {
+  font-size: 9px;
+  color: #aaa;
+}
 .total-input {
   width: 80px;
   border: 1px solid #a5d6a7;
