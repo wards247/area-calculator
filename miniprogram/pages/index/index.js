@@ -430,7 +430,7 @@ Page({
 
   handleGridStart(dx, dy) {
     if (!this.polygon || !this.gridOn) return;
-    if (this.ratioActive) this.clearRatio();
+    // 比例模式下不重置，直接切换该格A/B归属
 
     const [ix, iy] = this.dispToImg(dx, dy);
     const gridSize = this.GRID / this.scale;
@@ -487,7 +487,6 @@ Page({
     const maxY = Math.max(...this.polygon.map(p => p.y));
 
     const useRatio = this.ratioActive !== null;
-    const aSet = new Set(this.sortedCellKeys.slice(0, this.ratioSplit));
 
     for (let gy = Math.floor(minY / gridSize); gy <= Math.ceil(maxY / gridSize); gy++) {
       for (let gx = Math.floor(minX / gridSize); gx <= Math.ceil(maxX / gridSize); gx++) {
@@ -500,7 +499,8 @@ Page({
         const key = `${gx},${gy}`;
 
         if (useRatio) {
-          const inA = aSet.has(key);
+          // 比例模式：selectedCells中为A区(蓝)，否则B区(橙)，点击切换
+          const inA = !!this.selectedCells[key];
           ctx.fillStyle = inA ? 'rgba(33,150,243,0.45)' : 'rgba(255,152,0,0.4)';
           ctx.fillRect(sx + 0.5, sy + 0.5, gs - 1, gs - 1);
           ctx.strokeStyle = inA ? 'rgba(21,101,192,0.75)' : 'rgba(230,81,0,0.75)';
@@ -585,6 +585,12 @@ Page({
     this.ratioSplit = Math.max(0, Math.min(total, this.ratioSplit));
     this.ratioActive = { a, b };
 
+    // 把A区格子存入selectedCells，后续点击切换A/B归属
+    this.selectedCells = {};
+    for (let i = 0; i < this.ratioSplit; i++) {
+      this.selectedCells[this.sortedCellKeys[i]] = true;
+    }
+
     this.setData({
       ratioA: a,
       ratioB: b,
@@ -615,7 +621,7 @@ Page({
       return;
     }
     const total = this.sortedCellKeys.length;
-    const aCells = this.ratioActive ? this.ratioSplit : Object.keys(this.selectedCells).length;
+    const aCells = Object.keys(this.selectedCells).length;
     const bCells = total - aCells;
     const pct = total > 0 ? (aCells / total * 100).toFixed(1) : 0;
     const cellMu = this.totalAreaMu / total;
@@ -637,7 +643,7 @@ Page({
     const totalCells = this.countCellsInPolygon();
     const cellMu = this.totalAreaMu / totalCells;
     const cellSqm = this.totalAreaMu * 666.6667 / totalCells;
-    const sel = this.ratioActive ? this.ratioSplit : Object.keys(this.selectedCells).length;
+    const sel = Object.keys(this.selectedCells).length;
     const areaMu = sel * cellMu;
     const areaSqm = sel * cellSqm;
 
