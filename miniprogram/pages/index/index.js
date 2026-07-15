@@ -560,13 +560,18 @@ Page({
   },
 
   onRatioAInput(e) {
-    let a = parseInt(e.detail.value) || 60;
-    a = Math.max(1, Math.min(99, a));
-    this.setData({ ratioA: a });
+    // 输入时不做限制，允许用户自由输入/清空
+    const val = e.detail.value;
+    this.setData({ ratioA: val === '' ? '' : parseInt(val) || 0 });
   },
 
   onRatioCustom() {
-    const a = this.data.ratioA;
+    const a = parseInt(this.data.ratioA);
+    // 点应用时才校验范围
+    if (isNaN(a) || a < 1 || a > 99) {
+      wx.showToast({ title: '请输入1~99的数字', icon: 'none' });
+      return;
+    }
     this.applyRatio(a, 100 - a);
   },
 
