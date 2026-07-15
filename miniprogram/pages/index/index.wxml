@@ -14,15 +14,15 @@
       <text class="lbl">总面积（亩）</text>
       <input class="val total-input" type="digit" value="{{totalArea}}" bindinput="onTotalAreaInput" bindblur="onTotalAreaBlur" />
     </view>
-    <view class="info-item">
+    <view class="info-item info-narrow">
       <text class="lbl">描点</text>
       <text class="val">{{ptCount}}</text>
     </view>
-    <view class="info-item">
+    <view class="info-item info-narrow">
       <text class="lbl">总格数</text>
       <text class="val">{{totalCellCount}}</text>
     </view>
-    <view class="info-item">
+    <view class="info-item info-narrow">
       <text class="lbl">选中格</text>
       <text class="val">{{cellCount}}</text>
     </view>

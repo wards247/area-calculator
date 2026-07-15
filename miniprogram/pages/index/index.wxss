@@ -205,6 +205,14 @@
   text-align: center;
   padding: 2px;
 }
+/* 窄栏：描点/总格数/选中格 内容少，压缩宽度 */
+.info-narrow {
+  flex: 0.6;
+}
+/* 选中面积栏需要更多空间 */
+.info-area {
+  flex: 2.2;
+}
 .info-item .lbl {
   font-size: 9px;
   color: #999;
