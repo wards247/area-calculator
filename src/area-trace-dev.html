@@ -466,8 +466,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   function handleGridStart(dx, dy){
     if(!polygon || !gridOn) return;
-    // 手动选格时退出比例模式
-    if(ratioActive) clearRatio();
+    // 比例模式下点击直接切换该格A/B归属，不清空重置
     const [ix, iy] = dispToImg(dx, dy);
     const gridSize = GRID / scale;
     const gx = Math.floor(ix / gridSize);
@@ -516,7 +515,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
     // 比例模式下用 A/B 区颜色；普通模式用选中/未选中颜色
     const useRatio = ratioActive !== null;
-    const aSet = new Set(sortedCellKeys.slice(0, ratioSplit));
 
     for(let gy = Math.floor(minY/gridSize); gy <= Math.ceil(maxY/gridSize); gy++){
       for(let gx = Math.floor(minX/gridSize); gx <= Math.ceil(maxX/gridSize); gx++){
@@ -529,8 +527,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
         const key = `${gx},${gy}`;
 
         if(useRatio){
-          // 比例模式：A区蓝色，B区橙色
-          const inA = aSet.has(key);
+          // 比例模式：selectedCells中为A区(蓝)，否则B区(橙)，点击切换
+          const inA = selectedCells.has(key);
           gridCtx.fillStyle = inA ? 'rgba(33,150,243,0.45)' : 'rgba(255,152,0,0.4)';
           gridCtx.fillRect(sx+0.5, sy+0.5, gs-1, gs-1);
           gridCtx.strokeStyle = inA ? 'rgba(21,101,192,0.75)' : 'rgba(230,81,0,0.75)';
@@ -608,6 +606,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     // 同步自定义输入框
     ratioAInput.value = a;
 
+    // 把A区格子存入selectedCells，后续点击切换A/B归属
+    selectedCells = new Set();
+    for(let i = 0; i < ratioSplit; i++){
+      selectedCells.add(sortedCellKeys[i]);
+    }
+
     drawGridSelected();
     updateRatioDisplay();
   }
@@ -632,7 +636,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       return;
     }
     const total = sortedCellKeys.length;
-    const aCells = ratioActive ? ratioSplit : selectedCells.size;
+    const aCells = selectedCells.size;
     const bCells = total - aCells;
     const pct = total > 0 ? (aCells / total * 100).toFixed(1) : 0;
     const cellMu = totalAreaMu / total;
@@ -667,8 +671,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     const totalCells = countCellsInPolygon();
     const cellMu = totalAreaMu / totalCells;
     const cellSqm = totalAreaMu * 666.6667 / totalCells;
-    // 比例模式下显示A区格数，手动模式下显示选中格数
-    const sel = ratioActive ? ratioSplit : selectedCells.size;
+    const sel = selectedCells.size;
     const areaMu = sel * cellMu;
     const areaSqm = sel * cellSqm;
 
