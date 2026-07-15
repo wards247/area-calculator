@@ -281,6 +281,15 @@
   line-height: 1.4;
 }
 
+/* Banner 广告 */
+.banner-ad {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
+
 /* ==================== 描边提示 ==================== */
 .trace-tip {
   position: absolute;

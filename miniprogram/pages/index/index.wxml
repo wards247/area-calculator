@@ -86,6 +86,10 @@
     <text>{{hintText}}</text>
   </view>
 
+  <!-- Banner 广告位（替换 unit-id 为你在流量主后台申请的广告位 ID） -->
+  <!-- 注意：需先开通流量主（累计独立访客≥1000）后申请广告位 -->
+  <ad wx:if="{{imgSrc}}" unit-id="adunit-xxxxxxxxxxxxxxxx" class="banner-ad"></ad>
+
   <!-- 上传入口（初始状态：上传按钮 + 使用说明） -->
   <view class="upload-overlay" wx:if="{{!imgSrc}}" catchtouchmove="noop">
     <view class="upload-card">
