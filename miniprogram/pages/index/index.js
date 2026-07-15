@@ -20,8 +20,8 @@ Page({
     ptCount: '0',
     totalCellCount: '0',
     cellCount: '0',
-    areaVal: '0.000亩',
-    areaSub: '0.0㎡',
+    areaVal: '0.000',
+    areaSub: '0.0',
 
     // 比例
     ratioA: 60,
@@ -379,8 +379,8 @@ Page({
             ptCount: '0',
             totalCellCount: '0',
             cellCount: '0',
-            areaVal: '0.000亩',
-            areaSub: '0.0㎡',
+            areaVal: '0.000',
+            areaSub: '0.0',
             hintText: '第一步：点击「描边」，在图上点出地块边界',
           });
 
@@ -644,8 +644,8 @@ Page({
     this.setData({
       totalCellCount: String(totalCells),
       cellCount: String(sel),
-      areaVal: areaMu.toFixed(3) + '亩',
-      areaSub: areaSqm.toFixed(1) + '㎡',
+      areaVal: areaMu.toFixed(3),
+      areaSub: areaSqm.toFixed(1),
     });
     this.updateRatioDisplay();
   },

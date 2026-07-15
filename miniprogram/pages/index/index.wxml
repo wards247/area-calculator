@@ -29,8 +29,8 @@
     <view class="info-item info-area">
       <text class="lbl">选中面积</text>
       <view class="area-row">
-        <text class="val">{{areaVal}}</text>
-        <text class="sub">{{areaSub}}</text>
+        <text class="val">{{areaVal}}<text class="unit">亩</text></text>
+        <text class="sub">{{areaSub}}<text class="sub-unit">㎡</text></text>
       </view>
     </view>
   </view>
