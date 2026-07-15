@@ -60,7 +60,7 @@ Page({
   sortedCellKeys: [],
 
   totalAreaMu: 1.12,
-  GRID: 20,
+  GRID: 14,
 
   // 拖拽
   dragging: false,
@@ -69,6 +69,8 @@ Page({
 
   // 双击检测
   _lastTapTime: 0,
+  _lastTapX: 0,
+  _lastTapY: 0,
 
   // ==================== 生命周期 ====================
   onLoad() {},
@@ -254,12 +256,22 @@ Page({
 
   onTraceTouchMove() {},
 
-  onTraceTouchEnd() {
+  onTraceTouchEnd(e) {
     const now = Date.now();
-    if (this._lastTapTime && now - this._lastTapTime < 300 && this.tracing && this.points.length >= 3) {
-      this.finishTrace();
+    const touch = (e && e.changedTouches && e.changedTouches[0]) || { x: 0, y: 0 };
+    const tx = touch.x, ty = touch.y;
+    // 双击检测：时间 < 500ms 且两次点击位置距离 < 40px 才算双击（防触摸抖动误触发）
+    if (this._lastTapTime && now - this._lastTapTime < 500 && this.tracing && this.points.length >= 3) {
+      const dist = Math.hypot(tx - this._lastTapX, ty - this._lastTapY);
+      if (dist < 40) {
+        this.finishTrace();
+        this._lastTapTime = 0; // 复位，避免连续触发
+        return;
+      }
     }
     this._lastTapTime = now;
+    this._lastTapX = tx;
+    this._lastTapY = ty;
   },
 
   handleTraceStart(dx, dy) {

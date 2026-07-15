@@ -152,6 +152,7 @@
 /* ==================== 主内容区 ==================== */
 .main-content {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
 }
@@ -265,21 +266,26 @@
 
 /* ==================== 比例面板 ==================== */
 .ratio-panel {
-  width: 180px;
+  width: 100%;
   flex-shrink: 0;
   background: #fafafa;
-  border-left: 1px solid #e8e8e8;
-  padding: 8px;
+  border-top: 1px solid #e8e8e8;
+  padding: 6px 8px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+  overflow-y: visible;
 }
 .panel-title {
   font-size: 12px;
   font-weight: 700;
   color: #555;
+  width: 100%;
   text-align: center;
+  margin-bottom: 2px;
 }
 .ratio-presets {
   display: flex;
@@ -306,25 +312,26 @@
   background: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px 10px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 .rl-label {
-  font-size: 10px;
+  font-size: 9px;
   color: #999;
-  display: block;
 }
 .rl-pct {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   color: #1565c0;
   line-height: 1.1;
-  display: block;
 }
 .rl-detail {
-  font-size: 10px;
+  font-size: 9px;
   color: #888;
-  margin-top: 3px;
 }
 
 .ratio-legend {
