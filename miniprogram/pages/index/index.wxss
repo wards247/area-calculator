@@ -120,10 +120,8 @@
   margin: 0;
   flex-shrink: 0;
 }
-.btn::after {
-  border: none;
-}
-.btn[disabled] {
+/* 禁用态：不阻止点击，仅视觉变浅；JS 内部判断状态后 return */
+.btn-disabled {
   opacity: 0.35;
 }
 .btn-trace {

@@ -1,11 +1,11 @@
 <view class="container">
-  <!-- 工具栏：所有按钮始终存在，避免 DOM 增删导致页面尺寸变化 -->
+  <!-- 工具栏：用 view 代替 button，避免原生 disabled 导致不可点击 -->
   <view class="toolbar">
-    <button class="btn btn-trace {{tracing ? 'active' : ''}}" bindtap="onTraceToggle">{{tracing ? '✏️描边中' : '✏️描边'}}</button>
-    <button class="btn btn-undo" disabled="{{!canUndo}}" bindtap="onUndo">↩撤销</button>
-    <button class="btn btn-done" disabled="{{!showDoneBtn}}" bindtap="onDone">✅完成</button>
-    <button class="btn btn-clear" disabled="{{!showClearBtn}}" bindtap="onClear">🗑️清空</button>
-    <button class="btn btn-grid" disabled="{{!showGridBtn}}" bindtap="onGridToggle">{{gridOn ? '🔲隐藏' : '🔲网格'}}</button>
+    <view class="btn btn-trace {{tracing ? 'active' : ''}}" bindtap="onTraceToggle">{{tracing ? '✏️描边中' : '✏️描边'}}</view>
+    <view class="btn btn-undo {{canUndo ? '' : 'btn-disabled'}}" bindtap="onUndo">↩撤销</view>
+    <view class="btn btn-done {{showDoneBtn ? '' : 'btn-disabled'}}" bindtap="onDone">✅完成</view>
+    <view class="btn btn-clear {{showClearBtn ? '' : 'btn-disabled'}}" bindtap="onClear">🗑️清空</view>
+    <view class="btn btn-grid {{showGridBtn ? '' : 'btn-disabled'}}" bindtap="onGridToggle">{{gridOn ? '🔲隐藏' : '🔲网格'}}</view>
   </view>
 
   <!-- 信息栏 -->

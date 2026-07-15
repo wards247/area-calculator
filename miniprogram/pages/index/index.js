@@ -323,6 +323,7 @@ Page({
   },
 
   onUndo() {
+    if (!this.data.canUndo) return;
     if (this.points.length > 0) {
       this.points.pop();
       this.setData({
@@ -334,10 +335,12 @@ Page({
   },
 
   onDone() {
+    if (!this.data.showDoneBtn) return;
     if (this.points.length >= 3) this.finishTrace();
   },
 
   onClear() {
+    if (!this.data.showClearBtn) return;
     wx.showModal({
       title: '确认清空',
       content: '确定要清空所有描边吗？',
@@ -384,6 +387,7 @@ Page({
   },
 
   onGridToggle() {
+    if (!this.data.showGridBtn) return;
     this.gridOn = !this.gridOn;
     this.setData({
       gridOn: this.gridOn,
