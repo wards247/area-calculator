@@ -8,66 +8,123 @@
   position: relative;
 }
 
-/* 上传区域（初始状态） */
-.upload-area {
+/* ==================== 上传入口覆盖层 ==================== */
+.upload-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
+  background: #f0f2f5;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.upload-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 上传按钮区 */
+.upload-btn-area {
+  background: #fff;
+  border: 2px dashed #bbb;
+  border-radius: 16px;
+  padding: 32px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #f0f2f5;
-  z-index: 100;
+  gap: 8px;
 }
 .upload-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 48px;
 }
 .upload-text {
   font-size: 16px;
-  color: #888;
+  color: #666;
+  font-weight: 500;
 }
 
-/* 顶部 */
-.header {
-  padding: 10px 12px;
+/* 使用说明 */
+.tutorial {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+.tutorial-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  display: block;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.tutorial-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #2e7d32, #43a047);
   color: #fff;
-  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.header .title {
-  font-size: 16px;
+.step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.step-title {
+  font-size: 14px;
   font-weight: 600;
-  display: block;
+  color: #333;
 }
-.header .subtitle {
-  font-size: 11px;
-  opacity: 0.85;
-  margin-top: 2px;
-  display: block;
+.step-desc {
+  font-size: 12px;
+  color: #999;
 }
 
-/* 工具栏 */
+/* ==================== 工具栏 ==================== */
 .toolbar {
   display: flex;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 6px 8px;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
-  flex-wrap: wrap;
   justify-content: center;
+  flex-shrink: 0;
 }
+/* 压缩按钮：去掉 emoji，缩小内边距和字号 */
 .btn {
-  padding: 8px 14px;
+  padding: 6px 8px;
   border: none;
   border-radius: 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
   margin: 0;
+  flex-shrink: 0;
 }
 .btn::after {
   border: none;
+}
+.btn[disabled] {
+  opacity: 0.35;
 }
 .btn-trace {
   background: #e3f2fd;
@@ -80,9 +137,6 @@
 .btn-undo {
   background: #fff3e0;
   color: #e65100;
-}
-.btn-undo[disabled] {
-  opacity: 0.4;
 }
 .btn-done {
   background: #e8f5e9;
@@ -97,16 +151,11 @@
   color: #6a1b9a;
 }
 
-/* 主内容区 */
+/* ==================== 主内容区 ==================== */
 .main-content {
   display: flex;
   flex: 1;
   overflow: hidden;
-}
-@media (max-width: 640px) {
-  .main-content {
-    flex-direction: column;
-  }
 }
 
 /* 地图区域 */
@@ -143,13 +192,14 @@
   display: block;
 }
 
-/* 信息栏 */
+/* ==================== 信息栏 ==================== */
 .info-bar {
   display: flex;
   justify-content: space-around;
   padding: 6px;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
 }
 .info-item {
   flex: 1;
@@ -184,12 +234,13 @@
   background: #f1f8e9;
 }
 
-/* 提示 */
+/* ==================== 提示 ==================== */
 .hint {
   padding: 8px 10px;
   background: #fffbeb;
   border-top: 1px solid #fef3c7;
   text-align: center;
+  flex-shrink: 0;
 }
 .hint text {
   font-size: 13px;
@@ -197,7 +248,7 @@
   line-height: 1.4;
 }
 
-/* 描边提示 */
+/* ==================== 描边提示 ==================== */
 .trace-tip {
   position: absolute;
   top: 50%;
@@ -214,43 +265,38 @@
   line-height: 1.5;
 }
 
-/* 比例面板 */
+/* ==================== 比例面板 ==================== */
 .ratio-panel {
-  width: 200px;
+  width: 180px;
   flex-shrink: 0;
   background: #fafafa;
   border-left: 1px solid #e8e8e8;
-  padding: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
 }
 .panel-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #555;
   text-align: center;
 }
 .ratio-presets {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
 }
 .ratio-btn {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 2px solid #bbb;
   border-radius: 8px;
   background: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #555;
   line-height: 1.2;
-  margin: 0;
-}
-.ratio-btn::after {
-  border: none;
 }
 .ratio-btn.active {
   border-color: #1565c0;
@@ -262,7 +308,7 @@
   background: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px;
   text-align: center;
 }
 .rl-label {
@@ -271,7 +317,7 @@
   display: block;
 }
 .rl-pct {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   color: #1565c0;
   line-height: 1.1;
@@ -280,7 +326,7 @@
 .rl-detail {
   font-size: 10px;
   color: #888;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .ratio-legend {
@@ -313,56 +359,33 @@
 
 .ratio-custom {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
   justify-content: center;
 }
 .ratio-input {
-  width: 64px;
-  padding: 6px 8px;
+  width: 50px;
+  padding: 4px 6px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   text-align: center;
 }
 .pct-suffix {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #555;
 }
 .ratio-apply-btn {
-  padding: 6px 14px;
+  padding: 4px 10px;
   border: 1px solid #1565c0;
   border-radius: 6px;
   background: #1565c0;
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-  margin: 0;
   line-height: 1.4;
-}
-.ratio-apply-btn::after {
-  border: none;
-}
-
-@media (max-width: 640px) {
-  .ratio-panel {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #e8e8e8;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px;
-    justify-content: center;
-  }
-  .panel-title {
-    width: 100%;
-    margin-bottom: 0;
-  }
-  .ratio-live {
-    flex: 1;
-    min-width: 120px;
-  }
+  display: flex;
+  align-items: center;
 }

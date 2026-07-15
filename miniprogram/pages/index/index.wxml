@@ -1,17 +1,11 @@
 <view class="container">
-  <!-- 顶部 -->
-  <view class="header">
-    <text class="title">地块面积计算器</text>
-    <text class="subtitle">上传底图 · 手动描边 · 网格计算</text>
-  </view>
-
-  <!-- 工具栏 -->
+  <!-- 工具栏：所有按钮始终存在，避免 DOM 增删导致页面尺寸变化 -->
   <view class="toolbar">
-    <button class="btn btn-trace {{tracing ? 'active' : ''}}" bindtap="onTraceToggle">✏️ {{tracing ? '描边中...' : '开始描边'}}</button>
-    <button class="btn btn-undo" disabled="{{!canUndo}}" bindtap="onUndo">↩ 撤销</button>
-    <button class="btn btn-done" wx:if="{{showDoneBtn}}" bindtap="onDone">✅ 完成描边</button>
-    <button class="btn btn-clear" wx:if="{{showClearBtn}}" bindtap="onClear">🗑️ 清空</button>
-    <button class="btn btn-grid" wx:if="{{showGridBtn}}" bindtap="onGridToggle">🔲 {{gridOn ? '隐藏网格' : '显示网格'}}</button>
+    <button class="btn btn-trace {{tracing ? 'active' : ''}}" bindtap="onTraceToggle">{{tracing ? '✏️描边中' : '✏️描边'}}</button>
+    <button class="btn btn-undo" disabled="{{!canUndo}}" bindtap="onUndo">↩撤销</button>
+    <button class="btn btn-done" disabled="{{!showDoneBtn}}" bindtap="onDone">✅完成</button>
+    <button class="btn btn-clear" disabled="{{!showClearBtn}}" bindtap="onClear">🗑️清空</button>
+    <button class="btn btn-grid" disabled="{{!showGridBtn}}" bindtap="onGridToggle">{{gridOn ? '🔲隐藏' : '🔲网格'}}</button>
   </view>
 
   <!-- 信息栏 -->
@@ -49,8 +43,8 @@
         bindtouchstart="onTraceTouchStart"
         bindtouchmove="onTraceTouchMove"
         bindtouchend="onTraceTouchEnd" />
-      <!-- 网格 canvas -->
-      <canvas type="2d" id="grid-canvas" class="grid-canvas"
+      <!-- 网格 canvas：动态切换 show 类控制显隐 -->
+      <canvas type="2d" id="grid-canvas" class="grid-canvas {{gridOn ? 'show' : ''}}"
         bindtouchstart="onGridTouchStart"
         bindtouchmove="onGridTouchMove"
         bindtouchend="onGridTouchEnd" />
@@ -62,24 +56,21 @@
     <view class="ratio-panel" wx:if="{{showRatioPanel}}">
       <view class="panel-title">📐 比例填充</view>
       <view class="ratio-presets">
-        <button class="ratio-btn {{ratioA===60&&ratioB===40?'active':''}}" bindtap="onRatioPreset" data-a="60" data-b="40">60%</button>
-        <button class="ratio-btn {{ratioA===65&&ratioB===35?'active':''}}" bindtap="onRatioPreset" data-a="65" data-b="35">65%</button>
-        <button class="ratio-btn {{ratioA===70&&ratioB===30?'active':''}}" bindtap="onRatioPreset" data-a="70" data-b="30">70%</button>
+        <view class="ratio-btn {{ratioA===60&&ratioB===40?'active':''}}" bindtap="onRatioPreset" data-a="60" data-b="40">60%</view>
+        <view class="ratio-btn {{ratioA===65&&ratioB===35?'active':''}}" bindtap="onRatioPreset" data-a="65" data-b="35">65%</view>
+        <view class="ratio-btn {{ratioA===70&&ratioB===30?'active':''}}" bindtap="onRatioPreset" data-a="70" data-b="30">70%</view>
       </view>
       <view class="ratio-custom">
         <input type="number" class="ratio-input" value="{{ratioA}}" bindinput="onRatioAInput" />
         <text class="pct-suffix">%</text>
-        <button class="ratio-apply-btn" bindtap="onRatioCustom">应用</button>
+        <view class="ratio-apply-btn" bindtap="onRatioCustom">应用</view>
       </view>
+      <!-- A区B区改为竖排避免溢出 -->
       <view class="ratio-live">
         <text class="rl-label">当前占比</text>
         <text class="rl-pct">{{ratioPct}}</text>
-        <view class="rl-detail">
-          <text>A区: {{ratioACells}}格  B区: {{ratioBCells}}格</text>
-        </view>
-        <view class="rl-detail">
-          <text>A区面: {{ratioAArea}}  B区面: {{ratioBArea}}</text>
-        </view>
+        <view class="rl-detail">A区: {{ratioACells}}格 ({{ratioAArea}})</view>
+        <view class="rl-detail">B区: {{ratioBCells}}格 ({{ratioBArea}})</view>
       </view>
       <view class="ratio-legend">
         <view class="leg-a">A区</view>
@@ -93,9 +84,39 @@
     <text>{{hintText}}</text>
   </view>
 
-  <!-- 上传按钮（初始状态） -->
-  <view class="upload-area" wx:if="{{!imgSrc}}" bindtap="onChooseImage">
-    <view class="upload-icon">📷</view>
-    <text class="upload-text">点击上传地块规划图</text>
+  <!-- 上传入口（初始状态：上传按钮 + 使用说明） -->
+  <view class="upload-overlay" wx:if="{{!imgSrc}}" catchtouchmove="noop">
+    <view class="upload-card">
+      <view class="upload-btn-area" bindtap="onChooseImage">
+        <text class="upload-icon">📷</text>
+        <text class="upload-text">点击上传地块规划图</text>
+      </view>
+      <view class="tutorial">
+        <text class="tutorial-title">使用说明</text>
+        <view class="tutorial-steps">
+          <view class="step">
+            <view class="step-num">1</view>
+            <view class="step-text">
+              <text class="step-title">上传底图</text>
+              <text class="step-desc">拍照或选择地块规划图</text>
+            </view>
+          </view>
+          <view class="step">
+            <view class="step-num">2</view>
+            <view class="step-text">
+              <text class="step-title">描出地块</text>
+              <text class="step-desc">沿边界依次点击描点，双击闭合</text>
+            </view>
+          </view>
+          <view class="step">
+            <view class="step-num">3</view>
+            <view class="step-text">
+              <text class="step-title">网格计算</text>
+              <text class="step-desc">滑动选格或按比例自动填充</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

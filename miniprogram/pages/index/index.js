@@ -8,10 +8,11 @@ Page({
     showDoneBtn: false,
     showClearBtn: false,
     showGridBtn: false,
+    gridOn: false,
     showRatioPanel: false,
     showTraceTip: false,
     traceTipText: '点击图片描出边界\n双击或点击起点闭合',
-    hintText: '第一步：点击「开始描边」，在图上点出边界线',
+    hintText: '第一步：点击「描边」，在图上点出地块边界',
     canUndo: false,
 
     // 面积
@@ -32,7 +33,7 @@ Page({
     ratioBArea: '0.000亩',
   },
 
-  // ==================== 内部状态（不放 data，避免不必要的渲染）====================
+  // ==================== 内部状态 ====================
   imgW: 0,
   imgH: 0,
   dispW: 0,
@@ -42,35 +43,35 @@ Page({
   scale: 1,
 
   tracing: false,
-  points: [],           // [{x, y}] 图片坐标
-  polygon: null,        // 闭合后的多边形
+  points: [],
+  polygon: null,
   gridOn: false,
-  selectedCells: {},    // 选中的格子 {key: true}
+  selectedCells: {},
 
-  // canvas 节点和上下文
+  // canvas
   traceCanvas: null,
   traceCtx: null,
   gridCanvas: null,
   gridCtx: null,
 
   // 比例
-  ratioActive: null,    // {a, b} 或 null
+  ratioActive: null,
   ratioSplit: 0,
   sortedCellKeys: [],
 
   totalAreaMu: 1.12,
   GRID: 20,
 
-  // 拖拽状态
+  // 拖拽
   dragging: false,
-  dragMode: null,       // 'add' 或 'del'
-  dragVisited: {},      // 防重复翻转
+  dragMode: null,
+  dragVisited: {},
+
+  // 双击检测
+  _lastTapTime: 0,
 
   // ==================== 生命周期 ====================
-  onLoad() {
-    // 提示用户上传图片
-  },
-
+  onLoad() {},
   onReady() {
     this.initCanvas();
   },
@@ -78,7 +79,6 @@ Page({
   // ==================== Canvas 初始化 ====================
   initCanvas() {
     const query = wx.createSelectorQuery();
-    // 同时查询两个 canvas，在 exec 回调里统一处理
     query.select('#trace-canvas').fields({ node: true, size: true });
     query.select('#grid-canvas').fields({ node: true, size: true });
     query.exec((res) => {
@@ -90,7 +90,6 @@ Page({
         this.gridCanvas = res[1].node;
         this.gridCtx = this.gridCanvas.getContext('2d');
       }
-      // 两个 canvas 都初始化后再 resize
       if (this.traceCanvas && this.gridCanvas) {
         this.resize();
       }
@@ -105,13 +104,14 @@ Page({
       sourceType: ['album', 'camera'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath;
-        this.setData({ imgSrc: tempFilePath, hintText: '图片已加载，点击「开始描边」进行描边' });
+        this.setData({ imgSrc: tempFilePath, hintText: '图片已加载，点击「描边」开始描边' });
       }
     });
   },
 
+  noop() {},
+
   onImgLoad(e) {
-    // 图片加载完成，获取原始尺寸
     const { width, height } = e.detail;
     this.imgW = width;
     this.imgH = height;
@@ -121,8 +121,6 @@ Page({
   // ==================== 尺寸计算 ====================
   resize() {
     if (!this.traceCanvas || !this.gridCanvas) return;
-
-    // 获取 map-area 的显示尺寸
     const query = wx.createSelectorQuery();
     query.select('#map-area').boundingClientRect().exec((res) => {
       if (!res || !res[0]) return;
@@ -130,7 +128,6 @@ Page({
       this.dispW = Math.round(rect.width);
       this.dispH = Math.round(rect.height);
 
-      // 计算图片在容器中的实际显示区域（aspectFit）
       const imgRatio = this.imgW / this.imgH;
       const areaRatio = this.dispW / this.dispH;
       if (imgRatio > areaRatio) {
@@ -143,7 +140,6 @@ Page({
         this.offsetY = 0;
       }
 
-      // 设置 canvas 尺寸
       this.traceCanvas.width = this.dispW;
       this.traceCanvas.height = this.dispH;
       this.gridCanvas.width = this.dispW;
@@ -164,7 +160,6 @@ Page({
   dispToImg(dx, dy) {
     return [(dx - this.offsetX) / this.scale, (dy - this.offsetY) / this.scale];
   },
-
   imgToDisp(ix, iy) {
     return [ix * this.scale + this.offsetX, iy * this.scale + this.offsetY];
   },
@@ -178,7 +173,6 @@ Page({
     const ctx = this.traceCtx;
     ctx.clearRect(0, 0, this.dispW, this.dispH);
 
-    // 画边界线
     ctx.beginPath();
     const [sx, sy] = this.imgToDisp(this.points[0].x, this.points[0].y);
     ctx.moveTo(sx, sy);
@@ -192,13 +186,11 @@ Page({
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    // 填充半透明绿色
     if (this.polygon) {
       ctx.fillStyle = 'rgba(46,125,50,0.12)';
       ctx.fill();
     }
 
-    // 画点
     this.points.forEach((p, i) => {
       const [px, py] = this.imgToDisp(p.x, p.y);
       ctx.beginPath();
@@ -211,7 +203,7 @@ Page({
     });
   },
 
-  // ==================== 网格绘制 ====================
+  // ==================== 网格计算 ====================
   countCellsInPolygon() {
     if (!this.polygon) return 0;
     const minX = Math.min(...this.polygon.map(p => p.x));
@@ -249,7 +241,7 @@ Page({
       tracing: this.tracing,
       showDoneBtn: this.tracing,
       canUndo: this.tracing && this.points.length > 0,
-      hintText: this.tracing ? '在图上点出边界，双击完成描边' : '第一步：点击「开始描边」，在图上点出边界线',
+      hintText: this.tracing ? '在图上点出边界，双击完成描边' : '第一步：点击「描边」，在图上点出地块边界',
       showTraceTip: this.tracing,
     });
   },
@@ -257,17 +249,12 @@ Page({
   onTraceTouchStart(e) {
     if (!this.tracing) return;
     const touch = e.touches[0];
-    const dx = touch.x;
-    const dy = touch.y;
-    this.handleTraceStart(dx, dy);
+    this.handleTraceStart(touch.x, touch.y);
   },
 
-  onTraceTouchMove(e) {
-    // 描边时不需处理 move
-  },
+  onTraceTouchMove() {},
 
-  onTraceTouchEnd(e) {
-    // 双击检测：小程序没有 dblclick，用两次 tap 时间间隔判断
+  onTraceTouchEnd() {
     const now = Date.now();
     if (this._lastTapTime && now - this._lastTapTime < 300 && this.tracing && this.points.length >= 3) {
       this.finishTrace();
@@ -278,7 +265,6 @@ Page({
   handleTraceStart(dx, dy) {
     const [ix, iy] = this.dispToImg(dx, dy);
 
-    // 检查是否点击了起点（闭合）
     if (this.points.length >= 3) {
       const [sx, sy] = this.imgToDisp(this.points[0].x, this.points[0].y);
       const dist = Math.hypot(dx - sx, dy - sy);
@@ -311,14 +297,15 @@ Page({
       showGridBtn: true,
       showRatioPanel: true,
       showTraceTip: false,
-      hintText: '描边完成！右侧比例按钮可自动填充，也可手动滑动选格',
     });
 
     this.redrawTrace();
 
-    // 显示比例面板后 map-area 宽度变化，需要重算 canvas
+    // 双 nextTick 确保比例面板渲染完成后 map-area 尺寸已稳定，再重算 canvas
     wx.nextTick(() => {
-      this.resize();
+      wx.nextTick(() => {
+        this.resize();
+      });
     });
 
     this.computeSortedCells();
@@ -332,7 +319,7 @@ Page({
         hintText: '在格子上按住滑动即可选择/取消。修改顶部总面积可重新校准。',
       });
       this.drawGridSelected();
-    }, 300);
+    }, 350);
   },
 
   onUndo() {
@@ -363,25 +350,33 @@ Page({
           this.gridOn = false;
           this.ratioActive = null;
           this.ratioSplit = 0;
+          this.dragVisited = {};
 
           this.setData({
             tracing: false,
+            showDoneBtn: false,
+            canUndo: false,
             showClearBtn: false,
             showGridBtn: false,
+            gridOn: false,
             showRatioPanel: false,
+            showTraceTip: false,
             ptCount: '0',
+            totalCellCount: '0',
             cellCount: '0',
             areaVal: '0.000亩',
             areaSub: '0.0㎡',
-            hintText: '第一步：点击「开始描边」，在图上点出边界线',
+            hintText: '第一步：点击「描边」，在图上点出地块边界',
           });
 
           if (this.traceCtx) this.traceCtx.clearRect(0, 0, this.dispW, this.dispH);
           if (this.gridCtx) this.gridCtx.clearRect(0, 0, this.dispW, this.dispH);
 
-          // 隐藏比例面板后 map-area 宽度恢复，需要重算
+          // 隐藏比例面板后 map-area 宽度恢复，需重算
           wx.nextTick(() => {
-            this.resize();
+            wx.nextTick(() => {
+              this.resize();
+            });
           });
         }
       }
@@ -392,7 +387,6 @@ Page({
     this.gridOn = !this.gridOn;
     this.setData({
       gridOn: this.gridOn,
-      hintText: this.gridOn ? '在格子上按住滑动即可选择/取消' : '描边完成！可手动滑动选格',
     });
     if (this.gridOn) {
       this.drawGridSelected();
@@ -403,17 +397,13 @@ Page({
   onGridTouchStart(e) {
     if (!this.polygon || !this.gridOn) return;
     const touch = e.touches[0];
-    const dx = touch.x;
-    const dy = touch.y;
-    this.handleGridStart(dx, dy);
+    this.handleGridStart(touch.x, touch.y);
   },
 
   onGridTouchMove(e) {
     if (!this.dragging) return;
     const touch = e.touches[0];
-    const dx = touch.x;
-    const dy = touch.y;
-    this.handleGridMove(dx, dy);
+    this.handleGridMove(touch.x, touch.y);
   },
 
   onGridTouchEnd() {
@@ -424,8 +414,6 @@ Page({
 
   handleGridStart(dx, dy) {
     if (!this.polygon || !this.gridOn) return;
-
-    // 手动选格时退出比例模式
     if (this.ratioActive) this.clearRatio();
 
     const [ix, iy] = this.dispToImg(dx, dy);
@@ -513,7 +501,7 @@ Page({
       }
     }
 
-    // 比例模式下画分界线
+    // 比例模式分界虚线
     if (useRatio && this.ratioSplit > 0 && this.ratioSplit < this.sortedCellKeys.length) {
       const lastA = this.sortedCellKeys[this.ratioSplit - 1];
       const [agx, agy] = lastA.split(',').map(Number);
@@ -654,10 +642,5 @@ Page({
     if (isNaN(v) || v <= 0) {
       this.setData({ totalArea: this.totalAreaMu.toFixed(2) });
     }
-  },
-
-  // ==================== 窗口尺寸变化 ====================
-  onResize() {
-    this.resize();
   },
 })
